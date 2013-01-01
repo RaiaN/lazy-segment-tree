@@ -15,7 +15,7 @@ using namespace std;
 #include<math.h> 
 
 #define N 20
-#define MAX (1+(1<<5)) // Why? :D
+#define MAX (1+(1<<6)) // Why? :D
 #define inf 0x7fffffff
 
 int arr[N];
@@ -46,8 +46,12 @@ void update_tree(int node, int a, int b, int i, int j, int value) {
   
   	if(lazy[node] != 0) { // This node needs to be updated
    		tree[node] += lazy[node]; // Update it
-		lazy[node*2] += lazy[node]; // Mark child as lazy
-    		lazy[node*2+1] += lazy[node]; // Mark child as lazy
+
+		if(a != b) {
+			lazy[node*2] += lazy[node]; // Mark child as lazy
+    			lazy[node*2+1] += lazy[node]; // Mark child as lazy
+		}
+
    		lazy[node] = 0; // Reset it
   	}
   
@@ -56,9 +60,12 @@ void update_tree(int node, int a, int b, int i, int j, int value) {
     
   	if(a >= i && b <= j) { // Segment is fully within range
     		tree[node] += value;
+
 		if(a != b) { // Not leaf node
-			lazy[node*2] = lazy[node*2+1] += value;
+			lazy[node*2] += value;
+			lazy[node*2+1] += value;
 		}
+
     		return;
 	}
 
@@ -77,8 +84,12 @@ int query_tree(int node, int a, int b, int i, int j) {
 
 	if(lazy[node] != 0) { // This node needs to be updated
 		tree[node] += lazy[node]; // Update it
-		lazy[node*2] += lazy[node]; // Mark child as lazy
-		lazy[node*2+1] += lazy[node]; // Mark child as lazy
+
+		if(a != b) {
+			lazy[node*2] += lazy[node]; // Mark child as lazy
+			lazy[node*2+1] += lazy[node]; // Mark child as lazy
+		}
+
 		lazy[node] = 0; // Reset it
 	}
 
