@@ -5,6 +5,7 @@
  * Build tree: build_tree(1, 0, N-1)
  * Update tree: update_tree(1, 0, N-1, i, j, value)
  * Query tree: query_tree(1, 0, N-1, i, j)
+ * Actual space required by the tree = 2*2^ceil(log_2(n)) - 1
  */
 
 #include<iostream>
@@ -111,9 +112,9 @@ int main() {
 
 	memset(lazy, 0, sizeof lazy);
 
-	update_tree(1, 0, N-1, 0, 6, 5); // Increment range [0, 6] by 5
-	update_tree(1, 0, N-1, 7, 10, 12); // Incremenet range [7, 10] by 12
-	update_tree(1, 0, N-1, 10, N-1, 100); // Increment range [10, N-1] by 100
+	update_tree(1, 0, N-1, 0, 6, 5); // Increment range [0, 6] by 5. here 0, N-1 represent the current range.
+	update_tree(1, 0, N-1, 7, 10, 12); // Incremenet range [7, 10] by 12. here 0, N-1 represent the current range.
+	update_tree(1, 0, N-1, 10, N-1, 100); // Increment range [10, N-1] by 100. here 0, N-1 represent the current range.
 
 	cout << query_tree(1, 0, N-1, 0, N-1) << endl; // Get max element in range [0, N-1]
 }
