@@ -2,18 +2,28 @@
 #include <stdio.h>
 
 typedef unsigned int UINT;
+typedef unsigned long long ULL;
 
 namespace
 {
-    const unsigned long long MOD = 4294967296LL;
-    const size_t LEN             = 33554432;
+    const unsigned long long MOD = 4294967296LL; // 2^32
+    const size_t LEN             = 33554432 + 1; // 2^25 + 1
+    const size_t N               = 16777216;
 }
 
 UINT next_rand(int a, int b, UINT &seed)
 {
 	seed = seed * a + b;
 
-	return seed % 16;
+	return seed >> 8;
+}
+
+void check_for_overflow(ULL value, const int number)
+{
+	if (value > MOD)
+	{
+		std::cout << "OVERFLOW, LINE: " << number << std::endl;
+	}
 }
 
 void build(UINT* arr, UINT* tree, UINT v, UINT cl, UINT cr)
@@ -29,11 +39,11 @@ void build(UINT* arr, UINT* tree, UINT v, UINT cl, UINT cr)
     	build(arr, tree, 2 * v + 1, cl, cmid);
     	build(arr, tree, 2 * v + 2, cmid + 1, cr);
 
-    	tree[v] = tree[2 * v + 1] + tree[2 * v + 2];
+    	tree[v] = ((ULL)tree[2 * v + 1] + (ULL)tree[2 * v + 2]) % MOD;
 	}
 }
 
-void update(UINT* tree, UINT* lazy, UINT v, UINT cl, UINT cr, UINT l, UINT r, const UINT &val)
+void update(UINT* tree, UINT* lazy, UINT v, UINT cl, UINT cr, UINT l, UINT r, const UINT& val)
 {
     if (l > r)
     {
@@ -42,12 +52,12 @@ void update(UINT* tree, UINT* lazy, UINT v, UINT cl, UINT cr, UINT l, UINT r, co
 
     if (lazy[v] != 0)
     {
-    	tree[v] += lazy[v]; //TODO ?
+    	tree[v] = ((ULL)tree[v] + (ULL)(r - l + 1) * (ULL)lazy[v]) % MOD;
 
     	if (cl != cr)
     	{
-    		lazy[2 * v + 1] += lazy[v];
-    		lazy[2 * v + 2] += lazy[v];
+    		lazy[2 * v + 1] = lazy[v];
+    		lazy[2 * v + 2] = lazy[v];
     	}
 
     	lazy[v] = 0;
@@ -55,12 +65,12 @@ void update(UINT* tree, UINT* lazy, UINT v, UINT cl, UINT cr, UINT l, UINT r, co
 
     if (l <= cl && cr <= r)
     {
-    	tree[v] += val;  //TODO ?
+    	tree[v] = ((ULL)tree[v] + (ULL)(r - l + 1) * (ULL)val % MOD) % MOD;
 
     	if (cl != cr)
     	{
-    		lazy[2 * v + 1] += val;
-    		lazy[2 * v + 2] += val;
+    		lazy[2 * v + 1] = (lazy[2 * v + 1] + val) % MOD;
+    		lazy[2 * v + 2] = (lazy[2 * v + 2] + val) % MOD;
     	}
 
     	return;
@@ -71,10 +81,10 @@ void update(UINT* tree, UINT* lazy, UINT v, UINT cl, UINT cr, UINT l, UINT r, co
 	update(tree, lazy, 2 * v + 1, cl, cmid, l, std::min(r, cmid), val);
 	update(tree, lazy, 2 * v + 2, cmid + 1, cr, std::max(l, cmid + 1), r, val);
 
-	tree[v] = tree[2 * v + 1] + tree[2 * v + 2];
+	tree[v] = (tree[2 * v + 1] + tree[2 * v + 2]) % MOD;
 }
 
-UINT sum(UINT* tree, UINT* lazy, UINT v, UINT cl, UINT cr, UINT l, UINT r)
+ULL sum(UINT* tree, UINT* lazy, UINT v, UINT cl, UINT cr, UINT l, UINT r)
 {
 	if (l > r)
 	{
@@ -83,7 +93,7 @@ UINT sum(UINT* tree, UINT* lazy, UINT v, UINT cl, UINT cr, UINT l, UINT r)
 
 	if (lazy[v] != 0)
 	{
-		tree[v] += lazy[v];  //TODO
+		tree[v] = ((ULL)tree[v] + (ULL)(r - l + 1) * (ULL)lazy[v] % MOD) % MOD;
 
 		if (cl != cr)
 		{
@@ -96,7 +106,7 @@ UINT sum(UINT* tree, UINT* lazy, UINT v, UINT cl, UINT cr, UINT l, UINT r)
 
 	if (l <= cl && cr <= r)
 	{
-		return tree[v]; //TODO ?
+		return tree[v];
 	}
 
 	const UINT cmid  = (cl + cr) / 2;
@@ -104,7 +114,7 @@ UINT sum(UINT* tree, UINT* lazy, UINT v, UINT cl, UINT cr, UINT l, UINT r)
 	const UINT l_sum = sum(tree, lazy, 2 * v + 1, cl, cmid, l, std::min(r, cmid));
 	const UINT r_sum = sum(tree, lazy, 2 * v + 2, cmid + 1, cr, std::max(l, cmid + 1), r);
 
-	return l_sum + r_sum;
+	return ((ULL)l_sum + (ULL)r_sum) % MOD;
 }
 
 int main()
@@ -112,15 +122,11 @@ int main()
 	UINT m, q;
 	UINT a, b;
 
-	freopen("in.txt", "r", stdin);
-	//freopen("out.txt", "w", stdout);
+	freopen("fastadd.in",  "r", stdin);
+	freopen("fastadd.out", "w", stdout);
 
 	std::cin >> m >> q;
 	std::cin >> a >> b;
-
-	UINT* arr = new UINT[6]{5, 8, 2, 7, 12, 4};
-
-	UINT CLEN = 6 * 2 + 1;
 
 	UINT* tree  = new UINT[LEN];
 	UINT* lazy  = new UINT[LEN];
@@ -131,14 +137,9 @@ int main()
 		lazy[i] = 0;
 	}
 
-	build(arr, tree, 0, 0, 5);  // start = 0, left = 0, right = N
-
-	// tr, sm, v = 0, cl = 0, cr = N - 1, query_l = left_ind, query_r = right_ind
-	//std::cout << std::endl << sum(tr, sm, 0, 0, 5, 3, 5) << std::endl;
-
-    /*UINT res_sum = 0;
-
+    UINT res_sum = 0;
 	UINT seed = 0;
+
 	for (size_t i = 0; i < m; ++i)
 	{
 		UINT add = next_rand(a, b, seed);
@@ -150,13 +151,25 @@ int main()
 			std::swap(l, r);
 		}
 
-		update(tr, sm, 0, 0, LEN - 1, l, r, add);
-	}*/
+		update(tree, lazy, 0, 0, N - 1, l, r, add);
 
-	UINT add = 1;
-	update(tree, lazy, 0, 0, 5, 0, 5, add);
+		res_sum = ((ULL)res_sum + (ULL)(r - l + 1) * (ULL)add) % MOD;
+	}
 
-	std::cout << std::endl << sum(tree, lazy, 0, 0, 5, 0, 5) << std::endl;
+	for (size_t i = 0; i < q; ++i)
+	{
+		UINT l = next_rand(a, b, seed);
+		UINT r = next_rand(a, b, seed);
+
+		if (l > r)
+		{
+			std::swap(l, r);
+		}
+
+		res_sum = (res_sum + sum(tree, lazy, 0, 0, N - 1, l, r)) % MOD;
+	}
+
+	std::cout << res_sum;
 
 	delete []tree;
 	delete []lazy;
