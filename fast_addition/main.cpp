@@ -1,5 +1,7 @@
+#include <ctime>
 #include <iostream>
 #include <stdio.h>
+#include <vector>
 
 typedef unsigned int UINT;
 typedef unsigned long long ULL;
@@ -15,34 +17,51 @@ UINT next_rand(UINT a, UINT b, UINT &seed)
 	return seed >> 8;
 }
 
-void update(UINT* tree, UINT* lazy, UINT v, UINT cl, UINT cr, UINT l, UINT r, const UINT& val)
+void update(std::vector <UINT> &tree, std::vector <UINT> &lazy, UINT v,
+		    UINT cl, UINT cr, UINT l, UINT r, const UINT& val)
 {
-    if (lazy[v] != 0)
+    if (v <= N - 1 && lazy[v] != 0)
 	{
-		tree[v] = (tree[v] + (cr - cl + 1) * lazy[v] % MOD) % MOD;
+		tree[v] = (tree[v] + (cr - cl + 1) * lazy[v]) % MOD;
 
 		if (cl != cr)
 		{
-			lazy[2 * v + 1] += lazy[v];
-			lazy[2 * v + 2] += lazy[v];
+			if (2 * v + 2 > N - 1)
+			{
+				tree[2 * v + 1] = (tree[2 * v + 1] + lazy[v]) % MOD;
+				tree[2 * v + 2] = (tree[2 * v + 2] + lazy[v]) % MOD;
+			}
+			else
+			{
+				lazy[2 * v + 1] = (lazy[2 * v + 1] + lazy[v]) % MOD;
+				lazy[2 * v + 2] = (lazy[2 * v + 2] + lazy[v]) % MOD;
+			}
 		}
 
 		lazy[v] = 0;
 	}
 
-	if(cl > cr || cl > r || cr < l) // Current segment is not within range [i, j]
+	if(cl > cr || cl > r || cr < l)
 	{
 		return;
 	}
 
 	if (l <= cl && cr <= r)
 	{
-		tree[v] = (tree[v] + (cr - cl + 1) * val % MOD) % MOD;
+		tree[v] = (tree[v] + (cr - cl + 1) * val) % MOD;
 
 		if (cl != cr)
 		{
-			lazy[2 * v + 1] = (lazy[2 * v + 1] + val) % MOD;
-			lazy[2 * v + 2] = (lazy[2 * v + 2] + val) % MOD;
+			if (2 * v + 2 > N - 1)
+			{
+				tree[2 * v + 1] = (tree[2 * v + 1] + val) % MOD;
+				tree[2 * v + 2] = (tree[2 * v + 2] + val) % MOD;
+			}
+			else
+			{
+				lazy[2 * v + 1] = (lazy[2 * v + 1] + val) % MOD;
+				lazy[2 * v + 2] = (lazy[2 * v + 2] + val) % MOD;
+			}
 		}
 
 		return;
@@ -56,21 +75,29 @@ void update(UINT* tree, UINT* lazy, UINT v, UINT cl, UINT cr, UINT l, UINT r, co
 	tree[v] = (tree[2 * v + 1] + tree[2 * v + 2]) % MOD;
 }
 
-UINT sum(UINT* tree, UINT* lazy, UINT v, UINT cl, UINT cr, UINT l, UINT r)
+UINT sum(std::vector <UINT> &tree, std::vector <UINT> &lazy, UINT v, UINT cl, UINT cr, UINT l, UINT r)
 {
 	if (cl > cr || cl > r || cr < l)
 	{
 		return 0;
 	}
 
-	if (lazy[v] != 0)
+	if (v <= N - 1 && lazy[v] != 0)
 	{
-		tree[v] = (tree[v] + (cr - cl + 1) * lazy[v] % MOD) % MOD;
+		tree[v] = (tree[v] + (cr - cl + 1) * lazy[v]) % MOD;
 
 		if (cl != cr)
 		{
-			lazy[2 * v + 1] = (lazy[2 * v + 1] + lazy[v]) % MOD;
-			lazy[2 * v + 2] = (lazy[2 * v + 2] + lazy[v]) % MOD;
+			if (2 * v + 2 > N - 1)
+			{
+				tree[2 * v + 1] = (tree[2 * v + 1] + lazy[v]) % MOD;
+				tree[2 * v + 2] = (tree[2 * v + 2] + lazy[v]) % MOD;
+			}
+			else
+			{
+				lazy[2 * v + 1] = (lazy[2 * v + 1] + lazy[v]) % MOD;
+				lazy[2 * v + 2] = (lazy[2 * v + 2] + lazy[v]) % MOD;
+			}
 		}
 
 		lazy[v] = 0;
@@ -91,6 +118,8 @@ UINT sum(UINT* tree, UINT* lazy, UINT v, UINT cl, UINT cr, UINT l, UINT r)
 
 int main()
 {
+	clock_t begin = clock();
+
 	UINT m, q;
 	UINT a, b;
 
@@ -100,13 +129,20 @@ int main()
 	std::cin >> m >> q;
 	std::cin >> a >> b;
 
-	UINT* tree  = new UINT[LEN];
-	UINT* lazy  = new UINT[LEN];
+	std::vector <UINT> tree(LEN);
+	std::vector <UINT> lazy(N);
 
-	for (size_t i = 0; i < LEN; ++i)
+	size_t i = 0;
+
+	for (; i < N; ++i)
 	{
 		tree[i] = 0;
 		lazy[i] = 0;
+	}
+
+	for(; i < LEN; ++i)
+	{
+		tree[i] = 0;
 	}
 
     UINT res_sum = 0;
@@ -122,6 +158,7 @@ int main()
 		{
 			std::swap(l, r);
 		}
+
 
 		update(tree, lazy, 0, 0, N - 1, l, r, add);
 	}
@@ -139,10 +176,12 @@ int main()
 		res_sum = (res_sum + sum(tree, lazy, 0, 0, N - 1, l, r)) % MOD;
 	}
 
-	std::cout << res_sum % MOD;
+	std::cout << res_sum;
 
-	delete []tree;
-	delete []lazy;
+	clock_t end = clock();
+    double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+
+    std::cout << std::endl << elapsed_secs;
 
 	return 0;
 }
